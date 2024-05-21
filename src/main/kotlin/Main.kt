@@ -3,11 +3,15 @@ package org.example
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
-import org.telegram.telegrambots.meta.api.objects.Location
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
+import java.util.*
 
 class Bot: TelegramLongPollingBot() {
+    private var latitude: Double = .0
+    private var longitude: Double = .0
+    private var timeOfPreviousPosition: Date? = null
+
     companion object {
         const val BOT_USERNAME: String = "AOMSwithBot"
         const val BOT_TOKEN: String = "7160098247:AAGQJhrrbzCQW7oqUXlB6lFosDZvNE1GpQ0"
@@ -16,6 +20,8 @@ class Bot: TelegramLongPollingBot() {
     enum class BotAnswer(val message: String) {
         START("Welcome to AOMS bot!"),
         VOICE("Your voice message duration: "),
+        CURRENT_LOCATION("Your current position "),
+        CHANGE_LOCATION("Your position changed on "),
         DEFAULT("Unknown command")
     }
 
@@ -44,8 +50,22 @@ class Bot: TelegramLongPollingBot() {
                     }
                 }
                 else if (hasLocation()) {
+                    if (timeOfPreviousPosition != null) {
+                        sendMessage.also {
+                            it.text = BotAnswer.CHANGE_LOCATION.message + getCoordinates(
+                                latitude - location.latitude,
+                                longitude - location.longitude
+                            ) + "       ${timeOfPreviousPosition}"
+                            execute(it)
+                        }
+                    }
+
+                    timeOfPreviousPosition = Calendar.getInstance().time
+                    latitude = location.latitude
+                    longitude = location.longitude
+
                     sendMessage.also {
-                        it.text = getCurrentLocation(location)
+                        it.text = BotAnswer.CURRENT_LOCATION.message + getCoordinates()
                         execute(it)
                     }
                 }
@@ -53,9 +73,7 @@ class Bot: TelegramLongPollingBot() {
         }
     }
 
-    private fun getCurrentLocation(location: Location): String = location.run {
-        "Your current position ($latitude; $longitude)"
-    }
+    private fun getCoordinates(x: Double = latitude, y: Double = longitude): String = "($x; $y)"
 }
 
 fun main() {
