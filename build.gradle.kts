@@ -1,7 +1,7 @@
 import org.jetbrains.kotlin.ir.backend.js.compile
 
 plugins {
-    kotlin("jvm") version "1.9.21"
+    kotlin("jvm") version "2.0.0-RC2"
 }
 
 group = "org.example"

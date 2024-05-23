@@ -5,12 +5,15 @@ import org.telegram.telegrambots.meta.TelegramBotsApi
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import org.telegram.telegrambots.updatesreceivers.DefaultBotSession
-import java.util.*
+import java.time.LocalDateTime
+import kotlin.math.pow
+import java.time.Duration
+import kotlin.time.*
 
 class Bot: TelegramLongPollingBot() {
     private var latitude: Double = .0
     private var longitude: Double = .0
-    private var timeOfPreviousPosition: Date? = null
+    private var timeOfPreviousPosition: LocalDateTime? = null
 
     companion object {
         const val BOT_USERNAME: String = "AOMSwithBot"
@@ -50,19 +53,20 @@ class Bot: TelegramLongPollingBot() {
                     }
                 }
                 else if (hasLocation()) {
-                    if (timeOfPreviousPosition != null) {
+                    timeOfPreviousPosition?.let {
                         sendMessage.also {
-                            it.text = BotAnswer.CHANGE_LOCATION.message + getCoordinates(
-                                latitude - location.latitude,
-                                longitude - location.longitude
-                            ) + "       ${timeOfPreviousPosition}"
+                            it.text = with(location) {
+                                BotAnswer.CHANGE_LOCATION.message +
+                                        getDistance(latitude, longitude) +
+                                        " for " + getTime()
+                            }
                             execute(it)
                         }
                     }
 
-                    timeOfPreviousPosition = Calendar.getInstance().time
                     latitude = location.latitude
                     longitude = location.longitude
+                    timeOfPreviousPosition = LocalDateTime.now()
 
                     sendMessage.also {
                         it.text = BotAnswer.CURRENT_LOCATION.message + getCoordinates()
@@ -74,6 +78,13 @@ class Bot: TelegramLongPollingBot() {
     }
 
     private fun getCoordinates(x: Double = latitude, y: Double = longitude): String = "($x; $y)"
+
+    private fun getDistance(x: Double, y: Double): Double = ((latitude - x).pow(2) + (longitude - y).pow(2)).pow(.5)
+
+    private fun getTime(): String = Duration
+        .between(timeOfPreviousPosition, LocalDateTime.now())
+        .toKotlinDuration()
+        .toComponents { hours, minutes, seconds, _ -> "${hours}h:${minutes}m:${seconds}s" }
 }
 
 fun main() {
